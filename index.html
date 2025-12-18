@@ -2,93 +2,307 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberAlarm Pro</title>
-    <!-- Add Web App Manifest for better APK support -->
-    <link rel="manifest" href="manifest.json">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Elite Alarm Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --neon-cyan: #00f3ff; --neon-pink: #ff0055; --bg-dark: #050505; }
-        body { background-color: var(--bg-dark); color: white; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .app-shell { width: 100%; max-width: 400px; height: 95vh; background: #000; border-radius: 30px; position: relative; display: flex; flex-direction: column; padding: 20px; border: 1px solid #222; }
-        .header { text-align: center; padding: 30px 0; }
-        #current-time { font-size: 3.5rem; color: var(--neon-cyan); margin: 0; }
-        .alarm-card { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .fab { position: absolute; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--neon-cyan); border-radius: 50%; border: none; font-size: 1.5rem; cursor: pointer; }
-        #alarm-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; flex-direction: column; justify-content: center; align-items: center; }
-        .btn-stop { background: var(--neon-pink); color: white; padding: 15px 40px; border-radius: 30px; border: none; font-weight: bold; margin-top: 20px; }
+        :root {
+            --primary: #00f2fe;
+            --secondary: #7000ff;
+            --bg: #050505;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text: #ffffff;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--bg);
+            background: radial-gradient(circle at top right, #1a1a2e, #050505);
+            color: var(--text);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Branding */
+        .header-logo {
+            text-align: center;
+            padding: 20px 0 10px;
+        }
+
+        .logo-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+            object-fit: cover;
+        }
+
+        /* Clock Engine */
+        .clock-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        #main-time {
+            font-size: 5rem;
+            font-weight: 900;
+            margin: 0;
+            background: linear-gradient(to bottom, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #countdown-banner {
+            color: var(--primary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            height: 20px;
+        }
+
+        /* List Styling */
+        .alarm-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+        }
+
+        .alarm-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: slideUp 0.4s ease-out;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .alarm-info h2 { margin: 0; font-size: 2rem; letter-spacing: -1px; }
+        .alarm-info p { margin: 0; color: #888; font-size: 0.9rem; }
+
+        /* Floating Controls */
+        .fab {
+            position: absolute; bottom: 30px; right: 30px;
+            width: 70px; height: 70px;
+            background: linear-gradient(45deg, var(--secondary), var(--primary));
+            border-radius: 25px;
+            display: flex; justify-content: center; align-items: center;
+            color: #000; font-size: 1.8rem;
+            box-shadow: 0 10px 30px rgba(0, 242, 254, 0.4);
+            cursor: pointer; border: none;
+        }
+
+        /* Modal Design */
+        .modal {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 1000;
+            flex-direction: column; padding: 30px;
+        }
+
+        .input-group { margin-bottom: 20px; }
+        label { display: block; color: #666; margin-bottom: 8px; font-size: 0.8rem; }
+        
+        input, select {
+            width: 100%; background: #1a1a1a; border: 1px solid #333;
+            color: white; padding: 15px; border-radius: 15px; font-size: 1rem; outline: none;
+        }
+
+        .btn-row { display: flex; gap: 10px; margin-top: auto; }
+        .btn { flex: 1; padding: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-save { background: var(--primary); color: #000; }
+        .btn-cancel { background: #222; color: #fff; }
+
+        /* Ringing Overlay */
+        #ring-screen {
+            display: none; position: fixed; inset: 0; background: #000;
+            z-index: 9999; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        .ring-logo {
+            width: 120px; height: 120px; border-radius: 30px;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse { from { transform: scale(1); box-shadow: 0 0 20px var(--primary); } to { transform: scale(1.1); box-shadow: 0 0 40px var(--primary); } }
+
+        .ring-btn {
+            width: 80%; padding: 20px; border-radius: 50px; border: none;
+            font-weight: bold; font-size: 1.2rem; margin: 10px; cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
-    <div class="app-shell">
-        <div class="header">
-            <h1 id="current-time">00:00</h1>
-            <p id="current-date">Loading...</p>
+    <div class="app-container">
+        <div class="header-logo">
+            <img src="https://i.supaimg.com/ac52c45b-1625-4634-b6e3-6e597d64764e.jpg" class="logo-img">
         </div>
-        <div id="alarmList" style="flex:1; overflow-y:auto;"></div>
-        <button class="fab" onclick="addAlarm()"><i class="fas fa-plus"></i></button>
+
+        <div class="clock-section">
+            <p id="countdown-banner">No active alarms</p>
+            <h1 id="main-time">00:00:00</h1>
+        </div>
+
+        <div class="alarm-list" id="alarm-list">
+            <!-- Dynamic Alarms -->
+        </div>
+
+        <button class="fab" onclick="openModal()"><i class="fas fa-plus"></i></button>
     </div>
 
-    <div id="alarm-modal">
-        <h1 style="color: var(--neon-pink);">ALARM RINGING!</h1>
-        <button class="btn-stop" onclick="stopAlarm()">STOP ALARM</button>
+    <!-- Set Alarm Modal -->
+    <div class="modal" id="modal">
+        <h2 style="margin-top:0">Create New Alarm</h2>
+        
+        <div class="input-group">
+            <label>TIME (HH:MM:SS)</label>
+            <div style="display:flex; gap:5px;">
+                <input type="number" id="h" placeholder="00" min="0" max="23">
+                <input type="number" id="m" placeholder="00" min="0" max="59">
+                <input type="number" id="s" placeholder="00" min="0" max="59">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>ALARM LABEL</label>
+            <input type="text" id="label" placeholder="e.g. Wake up, Gym...">
+        </div>
+
+        <div class="input-group">
+            <label>SOUND TONE</label>
+            <select id="tone">
+                <option value="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3">Digital Breeze</option>
+                <option value="https://assets.mixkit.co/sfx/preview/mixkit-emergency-alert-alarm-1007.mp3">High Alert</option>
+            </select>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-cancel" onclick="closeModal()">CANCEL</button>
+            <button class="btn btn-save" onclick="saveAlarm()">SAVE ALARM</button>
+        </div>
     </div>
 
-    <!-- AUDIO FILE (Ensure alarm.mp3 is in the same folder on Vercel) -->
-    <audio id="audio" loop>
-        <source src="alarm.mp3" type="audio/mpeg">
-    </audio>
+    <!-- Ring Screen -->
+    <div id="ring-screen">
+        <img src="https://i.supaimg.com/ac52c45b-1625-4634-b6e3-6e597d64764e.jpg" class="ring-logo">
+        <h1 id="ring-label" style="margin-top:40px; letter-spacing: 2px;">ALARM</h1>
+        <h2 id="ring-time" style="color: var(--primary)">00:00:00</h2>
+        
+        <button class="ring-btn" style="background:var(--primary); color:#000" onclick="stopRinging()">DISMISS</button>
+        <button class="ring-btn" style="background:#222; color:#fff" onclick="snooze()">SNOOZE (5 MIN)</button>
+    </div>
+
+    <audio id="player" loop></audio>
 
     <script>
-        let alarms = JSON.parse(localStorage.getItem('alarms')) || [];
+        let alarms = JSON.parse(localStorage.getItem('premium_alarms')) || [];
+        const player = document.getElementById('player');
 
-        function updateTime() {
+        function update() {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-            document.getElementById('current-time').innerText = timeStr;
-            document.getElementById('current-date').innerText = now.toDateString();
+            const timeStr = now.toLocaleTimeString('en-GB', { hour12: false });
+            document.getElementById('main-time').innerText = timeStr;
 
-            alarms.forEach((alarm, index) => {
-                if (alarm.enabled && alarm.time === timeStr && !alarm.triggered) {
-                    triggerAlarm(index);
-                }
-                if (alarm.time !== timeStr) alarm.triggered = false;
+            // Check if any alarm matches
+            alarms.forEach((a, i) => {
+                if (a.active && a.time === timeStr) trigger(i);
             });
+
+            updateCountdown();
         }
 
-        function addAlarm() {
-            const t = prompt("Enter Time (HH:MM)", "07:00");
-            if (t) {
-                alarms.push({ time: t, enabled: true, triggered: false });
-                render();
+        function updateCountdown() {
+            if (alarms.length === 0) {
+                document.getElementById('countdown-banner').innerText = "No Alarms Set";
+                return;
             }
+            // Simple logic for the nearest alarm display
+            document.getElementById('countdown-banner').innerText = `Elite System Monitoring...`;
         }
 
-        function triggerAlarm(i) {
-            alarms[i].triggered = true;
-            document.getElementById('audio').play().catch(() => alert("Alarm Time! (Interact with screen to enable sound)"));
-            document.getElementById('alarm-modal').style.display = 'flex';
-            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+        function trigger(idx) {
+            player.src = alarms[idx].tone;
+            player.play();
+            document.getElementById('ring-label').innerText = alarms[idx].label.toUpperCase();
+            document.getElementById('ring-time').innerText = alarms[idx].time;
+            document.getElementById('ring-screen').style.display = 'flex';
+            if (navigator.vibrate) navigator.vibrate([1000, 500, 1000]);
         }
 
-        function stopAlarm() {
-            document.getElementById('audio').pause();
-            document.getElementById('alarm-modal').style.display = 'none';
+        function saveAlarm() {
+            const h = document.getElementById('h').value.padStart(2, '0');
+            const m = document.getElementById('m').value.padStart(2, '0');
+            const s = document.getElementById('s').value.padStart(2, '0');
+            const label = document.getElementById('label').value || "Alarm";
+            const tone = document.getElementById('tone').value;
+
+            alarms.push({ time: `${h}:${m}:${s}`, label, tone, active: true });
+            closeModal();
+            render();
+        }
+
+        function stopRinging() {
+            player.pause();
+            document.getElementById('ring-screen').style.display = 'none';
+        }
+
+        function snooze() {
+            stopRinging();
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 5);
+            const time = now.toLocaleTimeString('en-GB', { hour12: false });
+            alarms.push({ time, label: "Snooze", tone: document.getElementById('tone').value, active: true });
+            render();
         }
 
         function render() {
-            localStorage.setItem('alarms', JSON.stringify(alarms));
-            document.getElementById('alarmList').innerHTML = alarms.map((a, i) => `
+            localStorage.setItem('premium_alarms', JSON.stringify(alarms));
+            const list = document.getElementById('alarm-list');
+            list.innerHTML = alarms.map((a, i) => `
                 <div class="alarm-card">
-                    <h2>${a.time}</h2>
-                    <button onclick="alarms.splice(${i},1);render()" style="background:none; border:none; color:red;"><i class="fas fa-trash"></i></button>
+                    <div class="alarm-info">
+                        <h2>${a.time}</h2>
+                        <p>${a.label}</p>
+                    </div>
+                    <i class="fas fa-trash" style="color:#444" onclick="alarms.splice(${i},1);render()"></i>
                 </div>
             `).join('');
         }
 
-        setInterval(updateTime, 1000);
+        function openModal() { document.getElementById('modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        setInterval(update, 1000);
         render();
+
+        // Background Keeping Logic
+        let wakeLock = null;
+        async function initWake() { try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){} }
+        document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') initWake(); });
     </script>
 </body>
 </html>
