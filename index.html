@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Glassmorphism Alarm</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-glow: #00f2fe;
+            --secondary-glow: #4facfe;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1e3c72, #2a5298, #000);
+            color: white; font-family: 'Segoe UI', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-height: 100vh; margin: 0; overflow-x: hidden;
+        }
+
+        /* Glass Container */
+        .app-container {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            width: 350px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+            position: relative;
+        }
+
+        /* Digital Clock */
+        .time-display {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+            background: linear-gradient(to bottom, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -2px;
+        }
+
+        .date-display {
+            font-size: 1rem;
+            color: var(--primary-glow);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        /* Alarm Input Box */
+        .input-section {
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        input[type="time"] {
+            background: transparent;
+            border: 2px solid var(--primary-glow);
+            border-radius: 10px;
+            color: white;
+            padding: 10px;
+            font-size: 1.5rem;
+            width: 80%;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border-radius: 15px;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .set-btn {
+            background: linear-gradient(45deg, var(--secondary-glow), var(--primary-glow));
+            color: #00334e;
+            box-shadow: 0 10px 20px rgba(0,242,254,0.3);
+        }
+
+        .set-btn:active { transform: scale(0.95); }
+
+        /* Alarm List */
+        .alarm-list-container {
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .alarm-card {
+            background: rgba(255,255,255,0.05);
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn { from {opacity: 0; transform: translateY(10px);} to {opacity: 1; transform: translateY(0);} }
+
+        .delete-btn { color: #ff4b2b; cursor: pointer; font-size: 1.2rem; }
+
+        /* Alarm Ringing Overlay */
+        #alarm-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ringing-icon {
+            font-size: 5rem;
+            color: var(--primary-glow);
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: rotate(0); }
+            25% { transform: rotate(15deg); }
+            50% { transform: rotate(0); }
+            75% { transform: rotate(-15deg); }
+            100% { transform: rotate(0); }
+        }
+
+        .stop-btn {
+            margin-top: 30px;
+            background: #ff4b2b;
+            color: white;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="time-display" id="clock">00:00:00</div>
+        <div class="date-display" id="date">JANUARY 01, 2024</div>
+
+        <div class="input-section">
+            <input type="time" id="alarm-time">
+            <button class="set-btn" onclick="addAlarm()">الارم شامل کریں</button>
+        </div>
+
+        <div class="alarm-list-container" id="alarm-list">
+            <!-- الارم یہاں نظر آئیں گے -->
+        </div>
+    </div>
+
+    <!-- الارم بجنے کی سکرین -->
+    <div id="alarm-overlay">
+        <i class="fas fa-bell ringing-icon"></i>
+        <h1 style="margin-top:20px;">الارم بج رہا ہے!</h1>
+        <button class="stop-btn" onclick="stopAlarm()">بند کریں</button>
+    </div>
+
+    <audio id="ringtone" loop>
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let alarms = JSON.parse(localStorage.getItem('alarms')) || [];
+
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-GB', { hour12: false });
+            document.getElementById('clock').innerText = timeStr;
+            document.getElementById('date').innerText = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+            // الارم چیک کریں
+            const currentTime = timeStr.substring(0, 5);
+            alarms.forEach((alarm, index) => {
+                if(alarm.time === currentTime && !alarm.triggered) {
+                    triggerAlarm(index);
+                }
+            });
+        }
+
+        function addAlarm() {
+            const timeVal = document.getElementById('alarm-time').value;
+            if(!timeVal) return;
+
+            alarms.push({ time: timeVal, triggered: false });
+            saveAlarms();
+            renderAlarms();
+        }
+
+        function renderAlarms() {
+            const container = document.getElementById('alarm-list');
+            container.innerHTML = alarms.map((alarm, index) => `
+                <div class="alarm-card">
+                    <span><i class="far fa-clock"></i> ${alarm.time}</span>
+                    <i class="fas fa-trash delete-btn" onclick="deleteAlarm(${index})"></i>
+                </div>
+            `).join('');
+        }
+
+        function deleteAlarm(index) {
+            alarms.splice(index, 1);
+            saveAlarms();
+            renderAlarms();
+        }
+
+        function saveAlarms() {
+            localStorage.setItem('alarms', JSON.stringify(alarms));
+        }
+
+        function triggerAlarm(index) {
+            alarms[index].triggered = true;
+            document.getElementById('ringtone').play();
+            document.getElementById('alarm-overlay').style.display = 'flex';
+        }
+
+        function stopAlarm() {
+            document.getElementById('ringtone').pause();
+            document.getElementById('ringtone').currentTime = 0;
+            document.getElementById('alarm-overlay').style.display = 'none';
+            
+            // اگلے دن کے لیے ری سیٹ کریں
+            alarms.forEach(a => a.triggered = false);
+            renderAlarms();
+        }
+
+        setInterval(updateClock, 1000);
+        renderAlarms();
+    </script>
+</body>
+</html>
